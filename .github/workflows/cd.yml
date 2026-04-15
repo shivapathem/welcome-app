@@ -1,53 +1,89 @@
-name: 🚀 Welcome App Deployment Pipeline
+name: 🚀 CI-CD IIS Deployment Pipeline
  
 on:
   push:
     branches:
-      - main
+      - CICD
  
 jobs:
   build:
-    name: 🏗️ Build Application
+    name: 🏗️ Build Website Artifact
     runs-on: self-hosted
+ 
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
  
-      - name: 🐳 Build Docker Image
-        run: docker build -t welcome-app:latest .
- 
-  test:
-    name: 🧪 Test Environment
-    runs-on: self-hosted
-    needs: build
-    steps:
-      - name: 🔍 Verify Docker
-        run: docker info
- 
-      - name: 📦 Check Images
-        run: docker images
- 
-  deploy:
-    name: 🚀 Deploy Application
-    runs-on: self-hosted
-    needs: test
-    steps:
-      - name: 🛑 Stop Old Container
+      - name: 📂 Create Artifact Folder
         run: |
-          docker stop welcome-app || exit 0
-          docker rm welcome-app || exit 0
+          mkdir artifact
+          copy index.html artifact\
         shell: cmd
  
-      - name: ▶️ Run New Container
-        run: docker run -d -p 8080:80 --name welcome-app welcome-app:latest
+      - name: 📋 Show Artifact Files
+        run: dir artifact
+        shell: cmd
+ 
+      - name: 📦 Upload Website Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: website-artifact
+          path: artifact\
+          retention-days: 7
+ 
+  deploy:
+    name: 🚀 Deploy Artifact to IIS
+    runs-on: self-hosted
+    needs: build
+ 
+    steps:
+      - name: 📥 Download Website Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: website-artifact
+          path: downloaded-artifact
+ 
+      - name: 📂 Show Downloaded Files
+        run: dir downloaded-artifact
+        shell: cmd
+ 
+      - name: 🛑 Stop IIS Website
+        run: |
+          Import-Module WebAdministration
+          Stop-Website -Name "Default Web Site"
+        shell: powershell
+        continue-on-error: true
+ 
+      - name: 🧹 Clean Existing IIS Content
+        run: |
+          Remove-Item -Path "C:\inetpub\wwwroot\*" -Recurse -Force
+        shell: powershell
+ 
+      - name: 📁 Copy Artifact to IIS Folder
+        run: |
+          Copy-Item -Path "downloaded-artifact\artifact\*" -Destination "C:\inetpub\wwwroot\" -Recurse -Force
+        shell: powershell
+ 
+      - name: ▶️ Start IIS Website
+        run: |
+          Import-Module WebAdministration
+          Start-Website -Name "Default Web Site"
+        shell: powershell
  
   validate:
-    name: ✅ Validate Deployment
+    name: ✅ Validate IIS Deployment
     runs-on: self-hosted
     needs: deploy
-    steps:
-      - name: 📋 Check Running Container
-        run: docker ps
  
-      - name: 📜 View Logs
-        run: docker logs welcome-app
+    steps:
+      - name: 🌐 Verify Website Response
+        run: |
+          $response = Invoke-WebRequest -Uri "http://localhost"
+          Write-Host "Status Code:" $response.StatusCode
+        shell: powershell
+ 
+      - name: 📋 Display IIS Website Status
+        run: |
+          Import-Module WebAdministration
+          Get-Website
+        shell: powershell
