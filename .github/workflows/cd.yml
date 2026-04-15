@@ -1,3 +1,4 @@
+
 name: 🌐 IIS Deployment Pipeline
  
 on:
@@ -58,7 +59,7 @@ jobs:
     steps:
       - name: 🌐 Check Website Response
         run: |
-          Invoke-WebRequest -Uri "http://localhost" | Select-Object StatusCode
+          Invoke-WebRequest -Uri "http://localhost" -UseBasicParsing | Select-Object StatusCode
         shell: powershell
  
       - name: 📋 Show IIS Website Status
