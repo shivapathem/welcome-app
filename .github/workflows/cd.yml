@@ -1,4 +1,4 @@
-name: CD Pipeline - Welcome App
+name: 🚀 Welcome App Deployment Pipeline
  
 on:
   push:
@@ -6,46 +6,48 @@ on:
       - main
  
 jobs:
-  deploy:
+  build:
+    name: 🏗️ Build Application
     runs-on: self-hosted
- 
     steps:
-      - name: Checkout Code
+      - name: 📥 Checkout Code
         uses: actions/checkout@v4
  
-      - name: Verify Docker Is Running
+      - name: 🐳 Build Docker Image
+        run: docker build -t welcome-app:latest .
+ 
+  test:
+    name: 🧪 Test Environment
+    runs-on: self-hosted
+    needs: build
+    steps:
+      - name: 🔍 Verify Docker
         run: docker info
  
-      - name: Build Docker Image
-        run: docker build -t welcome-app:latest .
+      - name: 📦 Check Images
+        run: docker images
  
-      - name: Check Existing Container
-        run: docker ps -a
+  deploy:
+    name: 🚀 Deploy Application
+    runs-on: self-hosted
+    needs: test
+    steps:
+      - name: 🛑 Stop Old Container
+        run: |
+          docker stop welcome-app || exit 0
+          docker rm welcome-app || exit 0
         shell: cmd
  
-      - name: Stop Existing Container
-        run: docker stop welcome-app
-        continue-on-error: true
-        shell: cmd
- 
-      - name: Remove Existing Container
-        run: docker rm welcome-app
-        continue-on-error: true
-        shell: cmd
- 
-      - name: Remove Existing Image
-        run: docker rmi welcome-app:latest
-        continue-on-error: true
-        shell: cmd
- 
-      - name: Rebuild Docker Image
-        run: docker build -t welcome-app:latest .
- 
-      - name: Run New Container
+      - name: ▶️ Run New Container
         run: docker run -d -p 8080:80 --name welcome-app welcome-app:latest
  
-      - name: Verify Running Container
+  validate:
+    name: ✅ Validate Deployment
+    runs-on: self-hosted
+    needs: deploy
+    steps:
+      - name: 📋 Check Running Container
         run: docker ps
  
-      - name: Check Application Logs
+      - name: 📜 View Logs
         run: docker logs welcome-app
