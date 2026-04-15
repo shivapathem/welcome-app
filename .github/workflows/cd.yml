@@ -1,53 +1,68 @@
-name: 🚀 Welcome App Deployment Pipeline
+name: 🌐 IIS Deployment Pipeline
  
 on:
   push:
     branches:
-      - main
+      - IIS
  
 jobs:
   build:
-    name: 🏗️ Build Application
+    name: 🏗️ Prepare Website Files
     runs-on: self-hosted
+ 
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
  
-      - name: 🐳 Build Docker Image
-        run: docker build -t welcome-app:latest .
- 
-  test:
-    name: 🧪 Test Environment
-    runs-on: self-hosted
-    needs: build
-    steps:
-      - name: 🔍 Verify Docker
-        run: docker info
- 
-      - name: 📦 Check Images
-        run: docker images
- 
-  deploy:
-    name: 🚀 Deploy Application
-    runs-on: self-hosted
-    needs: test
-    steps:
-      - name: 🛑 Stop Old Container
-        run: |
-          docker stop welcome-app || exit 0
-          docker rm welcome-app || exit 0
+      - name: 📂 Verify Files
+        run: dir
         shell: cmd
  
-      - name: ▶️ Run New Container
-        run: docker run -d -p 8080:80 --name welcome-app welcome-app:latest
+  deploy:
+    name: 🚀 Deploy to IIS
+    runs-on: self-hosted
+    needs: build
+ 
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+ 
+      - name: 🛑 Stop IIS Website
+        run: |
+          Import-Module WebAdministration
+          Stop-Website -Name "Default Web Site"
+        shell: powershell
+        continue-on-error: true
+ 
+      - name: 🧹 Clean Existing IIS Files
+        run: |
+          Remove-Item -Path "C:\inetpub\wwwroot\*" -Recurse -Force
+        shell: powershell
+ 
+      - name: 📁 Copy New Website Files
+        run: |
+          Copy-Item -Path "${{ github.workspace }}\index.html" -Destination "C:\inetpub\wwwroot\" -Force
+        shell: powershell
+ 
+      - name: ▶️ Start IIS Website
+        run: |
+          Import-Module WebAdministration
+          Start-Website -Name "Default Web Site"
+        shell: powershell
  
   validate:
-    name: ✅ Validate Deployment
+    name: ✅ Validate IIS Deployment
     runs-on: self-hosted
     needs: deploy
-    steps:
-      - name: 📋 Check Running Container
-        run: docker ps
  
-      - name: 📜 View Logs
-        run: docker logs welcome-app
+    steps:
+      - name: 🌐 Check Website Response
+        run: |
+          Invoke-WebRequest -Uri "http://localhost" | Select-Object StatusCode
+        shell: powershell
+ 
+      - name: 📋 Show IIS Website Status
+        run: |
+          Import-Module WebAdministration
+          Get-Website
+        shell: powershell
