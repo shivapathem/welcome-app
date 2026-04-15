@@ -13,15 +13,39 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
  
+      - name: Verify Docker Is Running
+        run: docker info
+ 
       - name: Build Docker Image
         run: docker build -t welcome-app:latest .
  
-      - name: Stop Old Container
-        run: |
-          docker stop welcome-app || exit 0
-          docker rm welcome-app || exit 0
+      - name: Check Existing Container
+        run: docker ps -a
         shell: cmd
+ 
+      - name: Stop Existing Container
+        run: docker stop welcome-app
+        continue-on-error: true
+        shell: cmd
+ 
+      - name: Remove Existing Container
+        run: docker rm welcome-app
+        continue-on-error: true
+        shell: cmd
+ 
+      - name: Remove Existing Image
+        run: docker rmi welcome-app:latest
+        continue-on-error: true
+        shell: cmd
+ 
+      - name: Rebuild Docker Image
+        run: docker build -t welcome-app:latest .
  
       - name: Run New Container
         run: docker run -d -p 8080:80 --name welcome-app welcome-app:latest
  
+      - name: Verify Running Container
+        run: docker ps
+ 
+      - name: Check Application Logs
+        run: docker logs welcome-app
