@@ -1,3 +1,4 @@
+
 name: 🚀 CI-CD IIS Deployment Pipeline
  
 on:
@@ -61,7 +62,7 @@ jobs:
  
       - name: 📁 Copy Artifact to IIS Folder
         run: |
-          Copy-Item -Path "downloaded-artifact\artifact\*" -Destination "C:\inetpub\wwwroot\" -Recurse -Force
+          Copy-Item -Path "downloaded-artifact\*" -Destination "C:\inetpub\wwwroot\" -Recurse -Force
         shell: powershell
  
       - name: ▶️ Start IIS Website
@@ -78,7 +79,7 @@ jobs:
     steps:
       - name: 🌐 Verify Website Response
         run: |
-          $response = Invoke-WebRequest -Uri "http://localhost"
+          $response = Invoke-WebRequest -Uri "http://localhost" -UseBasicParsing
           Write-Host "Status Code:" $response.StatusCode
         shell: powershell
  
@@ -87,3 +88,4 @@ jobs:
           Import-Module WebAdministration
           Get-Website
         shell: powershell
+``
